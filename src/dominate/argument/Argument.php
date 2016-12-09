@@ -48,12 +48,20 @@ class Argument {
 
 
 	public function isRequired(CommandSender $sender = null) : bool {
-		return !$this->hasDefault();
+		return !$this->isDefaultValueSet();
 	}
 
-	public function setDefault(string $value) {
+	public function setDefaultValue(string $value) {
 		$this->default = $default;
 		$this->hasDefault = true;
+	}
+
+	public function isDefaultValueSet() : bool {
+		return $this->hasDefault;
+	}
+
+	public function getDefaultValue() {
+		return $this->default;
 	}
 
 	public function setCommand(Command $command) {

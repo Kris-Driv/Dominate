@@ -184,13 +184,21 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		return true;
 	}
 
+	public function getRequiredArgumentCount() : int {
+		$i = 0;
+		foreach ($this->arguments as $a) {
+			if($a->isRequired($this->sender)) $i++;
+		}
+		return $i;
+	}
+
 	/*
 	 * ----------------------------------------------------------
 	 * EXECUTION
 	 * ----------------------------------------------------------
 	 */
 
-	public function execute(CommandSender $sender, $label, array $args) {
+	public function execute(CommandSender $sender, $label, array $args) : bool {
 		$this->sender 	= $sender;
 		$this->label 	= "/" . $this->getName() . " " . implode(" ", $args);
 		$this->args 	= $args;
@@ -240,6 +248,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
                 $this->endPoint = $matches[0]->endPoint;
                 return true;
             } else {
+            	$this->endPoint = $this;
             	// Token was too ambiguous
                 if($matchCount > 8) {
                     $sender->sendMessage(Localizer::trans("command.too-ambiguous", [$this->values[0])]);
