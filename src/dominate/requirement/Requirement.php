@@ -32,6 +32,6 @@ abstract class Requirement {
 	 * ----------------------------------------------------------
 	 */
 
-	public abstract function hasMet(CommandSender $sender) : bool;
+	public abstract function hasMet(CommandSender $sender, $silent = false) : bool;
 
 }

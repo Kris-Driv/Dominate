@@ -24,8 +24,26 @@ use pocketmine\Player;
 
 class SimpleRequirement extends Requirement {
 
-	public function __construct() {
+	const OP 		= 0x1;
+	const NOT_OP 	= 0x2;
+	const ALIVE 	= 0x3;
+	const DEAD 		= 0x4;
+	const PLAYER 	= 0x5;
+	const CONSOLE 	= 0x6;
 
+	const ERROR_MESSAGES = [
+		self::OP 		=> "requirement.op-error",
+		self::NOT_OP 	=> "requirement.not-op-error",
+		self::ALIVE 	=> "requirement.alive-error",
+		self::DEAD 		=> "requirement.dead-error",
+		self::PLAYER 	=> "requirement.player-error"
+	];
+
+	/** @var int */
+	protected $type;
+
+	public function __construct(int $type) {
+		$this->type = $type;
 	}
 
 	/*
@@ -34,23 +52,27 @@ class SimpleRequirement extends Requirement {
 	 * ----------------------------------------------------------
 	 */
 
-	public abstract function hasMet(CommandSender $sender) : bool {
-		switch ($this->type) {
-			case self::OP:
-				return ($sender instanceof Player) ? $sender->isOp() : true;
-			case self::NOT_OP:
-				return ($sender instanceof Player) ? !$sender->isOp() : true;
-			case self::ALIVE:
-				return ($sender instanceof Player) ? $sender->isAlive() : false;
-			case self::DEAD:
-				return ($sender instanceof Player) ? !$sender->isAlive() : false;
-			case self::PLAYER:
-				return ($sender instanceof Player) ? true : false;
-			case self::CONSOLE:
-				return ($sender instanceof ConsoleCommandSender) ? true : false;
-			default:
-				return false;
-		}
+	public abstract function hasMet(CommandSender $sender, $silent = false) : bool {
+		$r = call_user_func(function() use($sender) {
+			switch ($this->type) {
+				case self::OP:
+					return ($sender instanceof Player) ? $sender->isOp() : true;
+				case self::NOT_OP:
+					return ($sender instanceof Player) ? !$sender->isOp() : true;
+				case self::ALIVE:
+					return ($sender instanceof Player) ? $sender->isAlive() : false;
+				case self::DEAD:
+					return ($sender instanceof Player) ? !$sender->isAlive() : false;
+				case self::PLAYER:
+					return ($sender instanceof Player) ? true : false;
+				case self::CONSOLE:
+					return ($sender instanceof ConsoleCommandSender) ? true : false;
+				default:
+					return false;
+			}
+		});
+		if(!$r && !$silent) 
+			$sender->sendMessage(Localizer::trans(self::ERROR_MESSAGES[$this->type], [($sender instanceof Player) ? $sender->getDisplayName() : $sender->getName()]));
 	}
 
 }

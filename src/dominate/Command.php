@@ -21,8 +21,17 @@ namespace dominate;
 use pocketmine\command\Command as PocketMineCommand;
 use pocketmine\command\PluginIdentifiableCommand;
 use pocketmine\command\CommandSender;
+use pocketmine\plugin\Plugin;
+
+use dominate\argument\Argument;
+use dominate\requirement\Requirement;
 
 class Command extends PocketMineCommand implements PluginIdentifiableCommand {
+
+	/**
+	 * @var Command
+	 */
+	protected $parent;
 
 	/**
 	 * @var Requirement[]
@@ -46,11 +55,6 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	protected $values = [];
 
 	/**
-	 * @var string[]
-	 */
-	protected $aliases = [];
-
-	/**
 	 * @var Command
 	 */
 	protected $endPoint = null;
@@ -66,11 +70,72 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	/** @var string */
 	protected $label;
 
+	/** @var Plugin */
+	protected $plugin;
+
+	/**
+	 * @param string $name
+	 * @param string $description = ""
+	 * @param string[] $aliases = []
+	 * @param Argument[] $arguments = []
+	 * @param Command[] $childs = []
+	 */
+	public function __construct(Plugin $plugin, string $name, string $description = "", array $aliases = [], array $arguments = [], array $childs = []){
+		parent::__construct($name, $description, $aliases);
+		$this->plugin = $plugin;
+	}
+
 	/*
 	 * ----------------------------------------------------------
 	 * CHILD (Sub Command)
 	 * ----------------------------------------------------------
 	 */
+
+	/**
+     * @return Command|null
+     */
+    public function getRoot() {
+        return $this->getChain()[0];
+    }
+
+    /**
+     * @return Command[]
+     */
+    public function getChain() : array {
+        $chain = [$this];
+        if(!$this->isChild()) return $chain;
+        $parent = $this->parent;
+        $chain[] = $parent;
+        while($parent->isChild()) {
+            $parent = $parent->getParent();
+            $chain[] = $parent;
+        }
+        return array_reverse($chain);
+    }
+
+    /**
+     * @return Command[]
+     */
+    public function getChildsByToken(string $token) : array
+    {
+        $matches = [];
+        foreach($this->childs as $child) {
+            if($token === ($name = $child->getName())) {
+                $matches[] = $child;
+                break;
+            }
+            $hay = [0 => $name];
+            $hay = array_merge($child->getAliases(), $hay);
+            foreach($hay as $al) {
+                if(($p = strpos($al, $token)) === 0) {
+                    $matches[$al] = $child;
+                    break;
+                }
+            }
+        }
+        ksort($matches);
+        return array_values($matches);
+    }
 
 	/**
 	 * Registers new subcommand or replaces existing one
@@ -81,6 +146,8 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	public function addChild(Command $command, int $index = null) {
 		if($this->contains($command)) 
 			throw new \InvalidArgumentException("command '{$command->getName()}' is already a child of '{$this->getName()}'");
+		if($this->getParent() === $command)
+			throw new \LogicException("parent can not be child");
 		if($command->contains($this))
 			throw new \LogicException("parent '{$command->getName()}' can't be child of child");
 		$this->childs[($index ?? count($this->childs))] = $command;
@@ -123,24 +190,23 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		return $this->childs;
 	}
 
-	/**
-	 * Returns a sub-command(s) matching given $token
-	 * @param string $token
-	 */
-	public function getChildByToken(string $token) {
-		$match = [];
-		foreach ($this->getChilds() as $key => $value) {
-			if(strtolower($value->getName()) === strtolower($token)) $match[] = $match;
-
-		}
-	}
-
 	public function isChild() : bool {
 		return $this->parent instanceof Command;
 	}
 
 	public function isParent() : bool {
 		return !empty($this->childs);
+	}
+
+	public function getParent() {
+		return $this->parent;
+	}
+
+	public function setParent(Command $command) {
+		if($this === $command) throw new \LogicException("command can not be parent of self");
+		// TODO: other logic checks
+		$this->parent = $command;
+		$command->removeChild($command);
 	}
 
 	/*
@@ -150,7 +216,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 */
 
 	public function addArgument(Argument $arg) {
-		$this->arguments[] = $argument;
+		$this->arguments[] = $arg;
 	}
 
 	public function removeArgument(Argument $arg) {
@@ -194,11 +260,64 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	/*
 	 * ----------------------------------------------------------
+	 * REQUIREMENTS
+	 * ----------------------------------------------------------
+	 */
+
+	public function hasRequirement(Requirement $r) {
+		return in_array($r, $this->requirements, true);
+	}
+
+	public function addRequirement(Requirement $r) {
+		$this->requirements[] = $r;
+	}
+
+	public function testRequirements(CommandSender $sender = null) : bool {
+		$sender = $sender ?? $this->sender;
+		foreach($this->requirements as $requirement) {
+			if(!$requirement->hasMet($r, false)) return false;
+		}
+		return true;
+	}
+
+	/*
+	 * ----------------------------------------------------------
+	 * USAGE
+	 * ----------------------------------------------------------
+	 * 
+	 * Generate dynamic usage messages 
+	 *
+	 */
+
+	public function getUsage() {
+		$sender = $this->sender;
+		$usage = "/";
+        // add chain
+        $chain = $this->getChain();
+        array_reverse($chain);
+        foreach($chain as $cmd) {
+            $usage .= $cmd->getName()." ";
+        }
+        foreach ($this->arguments as $param) {
+            $usage .= $param->getTemplate($sender)." ";
+        }
+        $usage = trim($usage);
+        $this->usage = $usage;
+        return $usage;
+	}
+
+	public function sendUsage(CommandSender $sender = null) {
+		$sender = $sender ?? $this->sender;
+		$sender->sendMessage($this->getUsage());
+	}
+
+	/*
+	 * ----------------------------------------------------------
 	 * EXECUTION
 	 * ----------------------------------------------------------
 	 */
 
-	public function execute(CommandSender $sender, $label, array $args) : bool {
+	public function execute(CommandSender $sender, $label, array $args) {
 		$this->sender 	= $sender;
 		$this->label 	= "/" . $this->getName() . " " . implode(" ", $args);
 		$this->args 	= $args;
@@ -224,7 +343,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
             $value = isset($args[$i]) ? $args[$i] : $param->getDefaultValue();
 
-            if($param->getType()->isValid($sender, $value)) {
+            if(Argument::validateInputType($value, $param->getType())) {
                 $param->setValue($param->read($value, $sender, false));
             } else {
                 $stop = true;
@@ -240,7 +359,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
                 $this->sendUsage($sender);
                 return false;
             }
-            $matches = $this->getChildByToken((string) $this->values[0]);
+            $matches = $this->getChildsByToken((string) $this->values[0]);
 
             if( ($matchCount = count($matches)) === 1 ) {
                 array_shift($args);
@@ -251,16 +370,16 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             	$this->endPoint = $this;
             	// Token was too ambiguous
                 if($matchCount > 8) {
-                    $sender->sendMessage(Localizer::trans("command.too-ambiguous", [$this->values[0])]);
+                    $sender->sendMessage(Localizer::trans("command.too-ambiguous", [$this->values[0]]));
                     return false;
                 }
                 // No commands by token was found
                 if($matchCount === 0) {
-                    $sender->sendMessage(Localizer::trans("command.child-none", [$this->values[0])]);
+                    $sender->sendMessage(Localizer::trans("command.child-none", [$this->values[0]]));
                     return false;
                 }
                 // Few commands by token was found an suggestion table will be created
-                $sender->sendMessage(Localizer::trans("command.suggestion.header", [$this->values[0])]);
+                $sender->sendMessage(Localizer::trans("command.suggestion.header", [$this->values[0]]));
                 foreach($matches as $match) {
                     $sender->sendMessage(Localizer::trans("command.suggestion", [$match->getName(), $match->getUsage($sender), $match->getDescription()]));
                 }
@@ -277,6 +396,10 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		$this->label = "";
 		$this->args = [];
 		$this->values = [];
+	}
+
+	public function getPlugin() {
+		return $this->plugin;
 	}
 
 }

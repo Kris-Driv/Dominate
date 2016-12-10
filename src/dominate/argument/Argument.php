@@ -41,11 +41,21 @@ class Argument {
 	/** @var int */
 	protected $type = self::TYPE_STRING;
 
+	/** @var mixed */
+	protected $value;
+
 	public function __construct(string $name, int $type = null) {
 		$this->type = $type ?? $this->type;
 		$this->name = $name;
 	}
 
+	public function setValue($value) {
+		$this->value;
+	}
+
+	public function getValue() {
+		return $this->value;
+	}
 
 	public function isRequired(CommandSender $sender = null) : bool {
 		return !$this->isDefaultValueSet();
@@ -68,6 +78,14 @@ class Argument {
 		$this->command = $command;
 	}
 
+	public function getName() {
+		return $this->name;
+	}
+
+	public function getType() {
+		return $this->type;
+	}
+
 	public static function validateInputType(string $input, int $type) : bool {
 		switch ($type) {
 			case self::TYPE_STRING:
@@ -81,6 +99,18 @@ class Argument {
 				return is_int((float) $input);
 		}
 		return false;
+	}
+
+	public function getTemplate(CommandSender $sender = null) {
+		$out = $this->getName();
+		if($this->isDefaultValueSet()) {
+			$out .= "=".$this->getDefaultValue();
+		}
+		if($this->isRequired())
+			$out = "<".$out.">";
+		else
+			$out = "[".$out."]";
+		return $out;
 	}
 
 	/*
