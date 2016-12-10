@@ -26,6 +26,8 @@ use pocketmine\plugin\Plugin;
 use dominate\argument\Argument;
 use dominate\requirement\Requirement;
 
+use localizer\Localizer;
+
 class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	/**
@@ -217,6 +219,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	public function addArgument(Argument $arg) {
 		$this->arguments[] = $arg;
+		$arg->setIndex($this->getArgumentIndex($arg));
 	}
 
 	public function removeArgument(Argument $arg) {
@@ -233,21 +236,10 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	}
 
 	public function readArgument(int $index, string $input = null) {
-		// What a useless function is here :/
-		if(isset($this->values[$index])) return $this->values[$index];
-		if($input) {
-			if(isset($this->arguments[$index])) {
-				$this->values[$index] = $this->arguments[$index]->read($input);
-			}
+		if(isset($this->arguments[$index])) {
+			return $this->arguments[$index]->getValue();
 		}
-	}
-
-	public function readArguments() {
-		foreach ($this->arguments as $key => $arg) {
-			if(!isset($this->args[$key])) return false;
-			$this->readArgument($index, $this->args[$key]);
-		}
-		return true;
+		return null;
 	}
 
 	public function getRequiredArgumentCount() : int {
@@ -370,18 +362,18 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             	$this->endPoint = $this;
             	// Token was too ambiguous
                 if($matchCount > 8) {
-                    $sender->sendMessage(Localizer::trans("command.too-ambiguous", [$this->values[0]]));
+                    $sender->sendMessage(Localizer::trans("command.too-ambiguous", ["token" => $this->values[0]]));
                     return false;
                 }
                 // No commands by token was found
                 if($matchCount === 0) {
-                    $sender->sendMessage(Localizer::trans("command.child-none", [$this->values[0]]));
+                    $sender->sendMessage(Localizer::trans("command.child-none", ["token" => $this->values[0]]));
                     return false;
                 }
                 // Few commands by token was found an suggestion table will be created
-                $sender->sendMessage(Localizer::trans("command.suggestion.header", [$this->values[0]]));
+                $sender->sendMessage(Localizer::trans("command.suggestion-header", ["token" => $this->values[0]]));
                 foreach($matches as $match) {
-                    $sender->sendMessage(Localizer::trans("command.suggestion", [$match->getName(), $match->getUsage($sender), $match->getDescription()]));
+                    $sender->sendMessage(Localizer::trans("command.suggestion", ["match" => $match->getName(), "usage" => $match->getUsage($sender), "desc" => $match->getDescription()]));
                 }
                 return false;
             }

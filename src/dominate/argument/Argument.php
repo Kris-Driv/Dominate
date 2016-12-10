@@ -19,14 +19,28 @@
 namespace dominate\argument;
 
 use pocketmine\command\CommandSender;
+use pocketmine\Player;
+use localizer\Translatable;
 
 class Argument {
 
-	const TYPE_STRING = 0x0;
-	const TYPE_INTEGER = 0x1;
-	const TYPE_FLOAT = 0x2;
-	const TYPE_DOUBLE = 0x3;
-	const TYPE_BOOLEAN = 0x4;
+	const TYPE_STRING 	= 0x0;
+	const TYPE_INTEGER 	= 0x1;
+	const TYPE_FLOAT 	= 0x2;
+	const TYPE_DOUBLE 	= self::TYPE_FLOAT;
+	const TYPE_REAL 	= self::TYPE_FLOAT;
+	const TYPE_BOOLEAN 	= 0x4;
+	const TYPE_BOOL 	= self::TYPE_BOOLEAN;
+	const TYPE_NULL		= 0x5;
+
+	const ERROR_MESSAGES = [
+		self::TYPE_STRING 	=> "argument.type-string-error",
+		self::TYPE_INTEGER 	=> "argument.type-string-error",
+		self::TYPE_FLOAT 	=> "argument.type-string-error",
+		self::TYPE_DOUBLE 	=> "argument.type-string-error",
+		self::TYPE_BOOLEAN 	=> "argument.type-string-error",
+		self::TYPE_NULL		=> "argument.type-null-error"
+	];
 
 	/** @var boolean */
 	protected $hasDefault = false;
@@ -40,17 +54,27 @@ class Argument {
 
 	/** @var int */
 	protected $type = self::TYPE_STRING;
+	protected $index = 0;
 
 	/** @var mixed */
 	protected $value;
 
-	public function __construct(string $name, int $type = null) {
+	public function __construct(string $name, int $type = null, int $index = null) {
 		$this->type = $type ?? $this->type;
 		$this->name = $name;
+		$this->index = $index ?? $this->index;
+	}
+
+	public function getIndex() : int {
+		return $this->index;
+	}
+
+	public function setIndex(int $i) {
+		$this->index = $i;
 	}
 
 	public function setValue($value) {
-		$this->value;
+		$this->value = $value;
 	}
 
 	public function getValue() {
@@ -111,6 +135,14 @@ class Argument {
 		else
 			$out = "[".$out."]";
 		return $out;
+	}
+
+	public function createErrorMessage(CommandSender $sender, string $value) : Translatable {
+		return new Translatable(self::ERROR_MESSAGES[$this->type], [
+			"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
+			"value" => $value,
+			"n" => $this->getIndex()
+			]);
 	}
 
 	/*
