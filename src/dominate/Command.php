@@ -82,8 +82,9 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * @param Argument[] $arguments = []
 	 * @param Command[] $childs = []
 	 */
-	public function __construct(Plugin $plugin, string $name, string $description = "", array $aliases = [], array $arguments = [], array $childs = []){
+	public function __construct(Plugin $plugin, string $name, string $description = "", string $permission, array $aliases = [], array $arguments = [], array $childs = []){
 		parent::__construct($name, $description, $aliases);
+		$this->setPermission($permission);
 		$this->plugin = $plugin;
 	}
 
@@ -335,13 +336,8 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
             $value = isset($args[$i]) ? $args[$i] : $param->getDefaultValue();
 
-            if(Argument::validateInputType($value, $param->getType())) {
-                $param->setValue($param->read($value, $sender, false));
-            } else {
-                $stop = true;
-                $sender->sendMessage($param->createErrorMessage($sender, $value));
-                break;
-            }
+            $param->setValue($param->read($value, $sender));
+
             $this->values[$i] = $value;
         }
         if($stop) return false;

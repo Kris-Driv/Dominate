@@ -19,12 +19,9 @@
 namespace dominate\requirement;
 
 use pocketmine\command\CommandSender;
+use localizer\Translatable;
 
 abstract class Requirement {
-
-	public function __construct() {
-
-	}
 
 	/*
 	 * ----------------------------------------------------------
@@ -33,5 +30,9 @@ abstract class Requirement {
 	 */
 
 	public abstract function hasMet(CommandSender $sender, $silent = false) : bool;
+
+	public function createErrorMessage(CommandSender $sender) : Translatable {
+		return new Translatable("requirement.generic-error");
+	}
 
 }

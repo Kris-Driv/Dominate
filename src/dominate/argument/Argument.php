@@ -33,13 +33,23 @@ class Argument {
 	const TYPE_BOOL 	= self::TYPE_BOOLEAN;
 	const TYPE_NULL		= 0x5;
 
-	const ERROR_MESSAGES = [
+	/** @var string[] */
+	public static $ERROR_MESSAGES = [
 		self::TYPE_STRING 	=> "argument.type-string-error",
 		self::TYPE_INTEGER 	=> "argument.type-string-error",
 		self::TYPE_FLOAT 	=> "argument.type-string-error",
 		self::TYPE_DOUBLE 	=> "argument.type-string-error",
 		self::TYPE_BOOLEAN 	=> "argument.type-string-error",
 		self::TYPE_NULL		=> "argument.type-null-error"
+	];
+
+	const PRIMITIVE_TYPES = [
+		self::TYPE_STRING,
+		self::TYPE_INTEGER,
+		self::TYPE_FLOAT,
+		self::TYPE_DOUBLE,
+		self::TYPE_BOOLEAN,
+		self::TYPE_NULL,
 	];
 
 	/** @var boolean */
@@ -86,8 +96,9 @@ class Argument {
 	}
 
 	public function setDefaultValue(string $value) {
-		$this->default = $default;
+		$this->default = $value;
 		$this->hasDefault = true;
+		return $this;
 	}
 
 	public function isDefaultValueSet() : bool {
@@ -110,7 +121,12 @@ class Argument {
 		return $this->type;
 	}
 
+	/**
+	 * Will do checks only on primitive data types
+	 * @return bool
+	 */
 	public static function validateInputType(string $input, int $type) : bool {
+		if(!isset(self::PRIMITIVE_TYPES[$type])) return false;
 		switch ($type) {
 			case self::TYPE_STRING:
 				return is_string((string) $input);
@@ -138,11 +154,23 @@ class Argument {
 	}
 
 	public function createErrorMessage(CommandSender $sender, string $value) : Translatable {
-		return new Translatable(self::ERROR_MESSAGES[$this->type], [
-			"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
-			"value" => $value,
-			"n" => $this->getIndex()
+		if(isset(self::$ERROR_MESSAGES[$this->type])) {
+			return new Translatable(self::$ERROR_MESSAGES[$this->type], [
+				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
+				"value" => $value,
+				"n" => $this->getIndex()
 			]);
+		} else {
+			return new Translatable("argument.generic-error", [
+				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
+				"value" => $value,
+				"n" => $this->getIndex()
+			]);
+		}
+	}
+
+	public function isPrimitive() : bool {
+		return isset(self::PRIMITIVE_TYPES[$this->type]);
 	}
 
 	/*
@@ -156,7 +184,31 @@ class Argument {
 	 * @return mixed
 	 */
 	public function read(string $input, CommandSender $sender = null) {
-		return $input;
+		$silent = $sender ? false : true;
+		if($this->isPrimitive()) {
+			if(!self::validateInputType($input, $this->type)) {
+				if(!$silent) {
+					$sender->sendMessage($this->createErrorMessage($sender, $input));
+				}
+				return null;
+			}
+		}
+		switch ($this->type) {
+			case self::TYPE_STRING:
+				return (string) $input;
+			case self::TYPE_INTEGER:
+				return (integer) $input;
+			case self::TYPE_FLOAT:
+				return (float) $input;
+			case self::TYPE_BOOLEAN:
+				return (bool) $input;
+			default:
+				break;
+		}
+		if(!$silent) {
+			$sender->sendMessage($this->createErrorMessage($sender, $input));
+		}
+		return null;
 	}
 
 	public function isValid(string $input, CommandSender $sender = null) {

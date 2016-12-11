@@ -21,6 +21,7 @@ namespace dominate\requirement;
 use pocketmine\command\CommandSender;
 use pocketmine\command\ConsoleCommandSender;
 use pocketmine\Player;
+use localizer\Translatable;
 
 class SimpleRequirement extends Requirement {
 
@@ -31,7 +32,7 @@ class SimpleRequirement extends Requirement {
 	const PLAYER 	= 0x5;
 	const CONSOLE 	= 0x6;
 
-	const ERROR_MESSAGES = [
+	public static $ERROR_MESSAGES = [
 		self::OP 		=> "requirement.op-error",
 		self::NOT_OP 	=> "requirement.not-op-error",
 		self::ALIVE 	=> "requirement.alive-error",
@@ -46,14 +47,12 @@ class SimpleRequirement extends Requirement {
 		$this->type = $type;
 	}
 
-	/*
-	 * ----------------------------------------------------------
-	 * ABSTRACT
-	 * ----------------------------------------------------------
-	 */
+	public function createErrorMessage(CommandSender $sender) : Translatable {
+		return new Translatable(self::ERROR_MESSAGES[$this->type], [($sender instanceof Player) ? $sender->getDisplayName() : $sender->getName()]);
+	}
 
-	public abstract function hasMet(CommandSender $sender, $silent = false) : bool {
-		$r = call_user_func(function() use($sender) {
+	public function hasMet(CommandSender $sender, $silent = false) : bool {
+		$r = call_user_func(function() use ($sender) {
 			switch ($this->type) {
 				case self::OP:
 					return ($sender instanceof Player) ? $sender->isOp() : true;
@@ -71,8 +70,10 @@ class SimpleRequirement extends Requirement {
 					return false;
 			}
 		});
-		if(!$r && !$silent) 
-			$sender->sendMessage(Localizer::trans(self::ERROR_MESSAGES[$this->type], [($sender instanceof Player) ? $sender->getDisplayName() : $sender->getName()]));
+		if(!$r && !$silent) {
+			$sender->sendMessage($this->createErrorMessage($sender));
+		}
+		return $r;
 	}
 
 }
