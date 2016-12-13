@@ -268,7 +268,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	public function testRequirements(CommandSender $sender = null) : bool {
 		$sender = $sender ?? $this->sender;
 		foreach($this->requirements as $requirement) {
-			if(!$requirement->hasMet($r, false)) return false;
+			if(!$requirement->hasMet($sender, false)) return false;
 		}
 		return true;
 	}

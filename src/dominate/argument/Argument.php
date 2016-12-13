@@ -26,6 +26,7 @@ class Argument {
 
 	const TYPE_STRING 	= 0x0;
 	const TYPE_INTEGER 	= 0x1;
+	const TYPE_NUMERIC 	= self::TYPE_INTEGER;
 	const TYPE_FLOAT 	= 0x2;
 	const TYPE_DOUBLE 	= self::TYPE_FLOAT;
 	const TYPE_REAL 	= self::TYPE_FLOAT;
@@ -36,10 +37,9 @@ class Argument {
 	/** @var string[] */
 	public static $ERROR_MESSAGES = [
 		self::TYPE_STRING 	=> "argument.type-string-error",
-		self::TYPE_INTEGER 	=> "argument.type-string-error",
-		self::TYPE_FLOAT 	=> "argument.type-string-error",
-		self::TYPE_DOUBLE 	=> "argument.type-string-error",
-		self::TYPE_BOOLEAN 	=> "argument.type-string-error",
+		self::TYPE_INTEGER 	=> "argument.type-integer-error",
+		self::TYPE_FLOAT 	=> "argument.type-float-error",
+		self::TYPE_BOOLEAN 	=> "argument.type-boolean-error",
 		self::TYPE_NULL		=> "argument.type-null-error"
 	];
 
@@ -47,7 +47,6 @@ class Argument {
 		self::TYPE_STRING,
 		self::TYPE_INTEGER,
 		self::TYPE_FLOAT,
-		self::TYPE_DOUBLE,
 		self::TYPE_BOOLEAN,
 		self::TYPE_NULL,
 	];
@@ -125,18 +124,34 @@ class Argument {
 	 * Will do checks only on primitive data types
 	 * @return bool
 	 */
-	public static function validateInputType(string $input, int $type) : bool {
+	public static function validateInputType($input, int $type) : bool {
 		if(!isset(self::PRIMITIVE_TYPES[$type])) return false;
+		echo "Validating primitive type".PHP_EOL;
 		switch ($type) {
 			case self::TYPE_STRING:
-				return is_string((string) $input);
+				return is_string($input);
 			case self::TYPE_BOOLEAN:
-				return is_bool((bool) $input);
+				switch(strtolower($input)) {
+					case '1':
+					case 'true':
+					case 'yes':
+					case 'y':
+						return true;
+					case '0':
+					case 'false':
+					case 'no':
+					case 'n':
+						return true;
+					default:
+						return false;
+				}
+				return false;
 			case self::TYPE_DOUBLE:
 			case self::TYPE_FLOAT:
-				return is_float((float) $input);
+				if(strpos($input, ".") === false) return false;
+				return is_numeric($input);
 			case self::TYPE_INTEGER:
-				return is_int((float) $input);
+				return is_numeric($input);
 		}
 		return false;
 	}
@@ -158,13 +173,13 @@ class Argument {
 			return new Translatable(self::$ERROR_MESSAGES[$this->type], [
 				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
 				"value" => $value,
-				"n" => $this->getIndex()
+				"n" => $this->getIndex() + 1 // Must make this readable, not everyone can program
 			]);
 		} else {
 			return new Translatable("argument.generic-error", [
 				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
 				"value" => $value,
-				"n" => $this->getIndex()
+				"n" => $this->getIndex() + 1
 			]);
 		}
 	}
@@ -186,7 +201,9 @@ class Argument {
 	public function read(string $input, CommandSender $sender = null) {
 		$silent = $sender ? false : true;
 		if($this->isPrimitive()) {
+			echo "Is primitive".PHP_EOL;
 			if(!self::validateInputType($input, $this->type)) {
+				echo "Input validation failed!".PHP_EOL;
 				if(!$silent) {
 					$sender->sendMessage($this->createErrorMessage($sender, $input));
 				}

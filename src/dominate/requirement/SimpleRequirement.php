@@ -48,7 +48,7 @@ class SimpleRequirement extends Requirement {
 	}
 
 	public function createErrorMessage(CommandSender $sender) : Translatable {
-		return new Translatable(self::ERROR_MESSAGES[$this->type], [($sender instanceof Player) ? $sender->getDisplayName() : $sender->getName()]);
+		return new Translatable(self::$ERROR_MESSAGES[$this->type], [($sender instanceof Player) ? $sender->getDisplayName() : $sender->getName()]);
 	}
 
 	public function hasMet(CommandSender $sender, $silent = false) : bool {
