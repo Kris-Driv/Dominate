@@ -16,13 +16,13 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-namespace dominate\argument;
+namespace dominate\paremeter;
 
 use pocketmine\command\CommandSender;
 use pocketmine\Player;
 use localizer\Translatable;
 
-class Argument {
+class Parameter {
 
 	const TYPE_STRING 	= 0x0;
 	const TYPE_INTEGER 	= 0x1;
@@ -36,11 +36,11 @@ class Argument {
 
 	/** @var string[] */
 	public static $ERROR_MESSAGES = [
-		self::TYPE_STRING 	=> "argument.type-string-error",
-		self::TYPE_INTEGER 	=> "argument.type-integer-error",
-		self::TYPE_FLOAT 	=> "argument.type-float-error",
-		self::TYPE_BOOLEAN 	=> "argument.type-boolean-error",
-		self::TYPE_NULL		=> "argument.type-null-error"
+		self::TYPE_STRING 	=> "parameter.type-string-error",
+		self::TYPE_INTEGER 	=> "parameter.type-integer-error",
+		self::TYPE_FLOAT 	=> "parameter.type-float-error",
+		self::TYPE_BOOLEAN 	=> "parameter.type-boolean-error",
+		self::TYPE_NULL		=> "parameter.type-null-error"
 	];
 
 	const PRIMITIVE_TYPES = [

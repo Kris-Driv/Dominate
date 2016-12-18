@@ -23,7 +23,7 @@ use pocketmine\command\PluginIdentifiableCommand;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\Plugin;
 
-use dominate\argument\Argument;
+use dominate\parameter\Parameter;
 use dominate\requirement\Requirement;
 
 use localizer\Localizer;
@@ -46,12 +46,12 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	protected $childs = [];
 
 	/**
-	 * @var Argument[]
+	 * @var Parameter[]
 	 */
-	protected $arguments = [];
+	protected $parameters = [];
 
 	/**
-	 * Values from each argument
+	 * Values from each parameter
 	 * @var mixed[]
 	 */
 	protected $values = [];
@@ -79,13 +79,15 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * @param string $name
 	 * @param string $description = ""
 	 * @param string[] $aliases = []
-	 * @param Argument[] $arguments = []
+	 * @param Parameter[] $parameters = []
 	 * @param Command[] $childs = []
 	 */
-	public function __construct(Plugin $plugin, string $name, string $description = "", string $permission, array $aliases = [], array $arguments = [], array $childs = []){
+	public function __construct(Plugin $plugin, string $name, string $description = "", string $permission, array $aliases = [], array $parameters = [], array $childs = []){
 		parent::__construct($name, $description, $aliases);
 		$this->setPermission($permission);
 		$this->plugin = $plugin;
+		$this->parameters = $parameters;
+		$this->childs = $childs;
 	}
 
 	/*
@@ -214,38 +216,38 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	/*
 	 * ----------------------------------------------------------
-	 * ARGUMENTS
+	 * PARAMETER
 	 * ----------------------------------------------------------
 	 */
 
-	public function addArgument(Argument $arg) {
-		$this->arguments[] = $arg;
-		$arg->setIndex($this->getArgumentIndex($arg));
+	public function addParameter(Parameter $arg) {
+		$this->paremeters[] = $arg;
+		$arg->setIndex($this->getParameterIndex($arg));
 	}
 
-	public function removeArgument(Argument $arg) {
-		if(($i = $this->getArgumentIndex($arg)) >= 0) {
-			unset($this->arguments[$i]);
+	public function removeParameter(Paremeter $arg) {
+		if(($i = $this->getParameterIndex($arg)) >= 0) {
+			unset($this->paremeters[$i]);
 		}
 	}
 
-	public function getArgumentIndex(Argument $arg) : int {
-		foreach($this->arguments as $i => $a) {
+	public function getParameterIndex(Paremeter $arg) : int {
+		foreach($this->paremeters as $i => $a) {
 			if($a === $arg) return $i;
 		}
 		return -1;
 	}
 
-	public function readArgument(int $index, string $input = null) {
-		if(isset($this->arguments[$index])) {
-			return $this->arguments[$index]->getValue();
+	public function getArgument(int $index) {
+		if(isset($this->paremeters[$index])) {
+			return $this->parameters[$index]->getValue();
 		}
 		return null;
 	}
 
-	public function getRequiredArgumentCount() : int {
+	public function getRequiredParameterCount() : int {
 		$i = 0;
-		foreach ($this->arguments as $a) {
+		foreach ($this->paremeters as $a) {
 			if($a->isRequired($this->sender)) $i++;
 		}
 		return $i;
@@ -291,7 +293,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         foreach($chain as $cmd) {
             $usage .= $cmd->getName()." ";
         }
-        foreach ($this->arguments as $param) {
+        foreach ($this->parameters as $param) {
             $usage .= $param->getTemplate($sender)." ";
         }
         $usage = trim($usage);
@@ -322,13 +324,13 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		if(!$this->testRequirements()) {
 			return false;
 		}
-		if( ($argCount = count($args)) < $this->getRequiredArgumentCount() ) {
+		if( ($argCount = count($args)) < $this->getRequiredParemeterCount() ) {
             $this->sendUsage($sender);
             return false;
         }
 
         $stop = false;
-        foreach ($this->arguments as $i => $param) {
+        foreach ($this->parameters as $i => $param) {
 
             if (!isset($args[$i]) and !$param->isDefaultValueSet()) {
             	break;
