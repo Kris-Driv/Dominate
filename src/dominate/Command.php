@@ -221,25 +221,25 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 */
 
 	public function addParameter(Parameter $arg) {
-		$this->paremeters[] = $arg;
+		$this->parameters[] = $arg;
 		$arg->setIndex($this->getParameterIndex($arg));
 	}
 
-	public function removeParameter(Paremeter $arg) {
+	public function removeParameter(Parameter $arg) {
 		if(($i = $this->getParameterIndex($arg)) >= 0) {
-			unset($this->paremeters[$i]);
+			unset($this->parameters[$i]);
 		}
 	}
 
-	public function getParameterIndex(Paremeter $arg) : int {
-		foreach($this->paremeters as $i => $a) {
+	public function getParameterIndex(Parameter $arg) : int {
+		foreach($this->parameters as $i => $a) {
 			if($a === $arg) return $i;
 		}
 		return -1;
 	}
 
 	public function getArgument(int $index) {
-		if(isset($this->paremeters[$index])) {
+		if(isset($this->parameters[$index])) {
 			return $this->parameters[$index]->getValue();
 		}
 		return null;
@@ -247,7 +247,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	public function getRequiredParameterCount() : int {
 		$i = 0;
-		foreach ($this->paremeters as $a) {
+		foreach ($this->parameters as $a) {
 			if($a->isRequired($this->sender)) $i++;
 		}
 		return $i;
@@ -324,7 +324,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		if(!$this->testRequirements()) {
 			return false;
 		}
-		if( ($argCount = count($args)) < $this->getRequiredParemeterCount() ) {
+		if( ($argCount = count($args)) < $this->getRequiredParameterCount() ) {
             $this->sendUsage($sender);
             return false;
         }
