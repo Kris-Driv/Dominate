@@ -126,7 +126,6 @@ class Parameter {
 	 */
 	public static function validateInputType($input, int $type) : bool {
 		if(!isset(self::PRIMITIVE_TYPES[$type])) return false;
-		echo "Validating primitive type".PHP_EOL;
 		switch ($type) {
 			case self::TYPE_STRING:
 				return is_string($input);
@@ -201,9 +200,7 @@ class Parameter {
 	public function read(string $input, CommandSender $sender = null) {
 		$silent = $sender ? false : true;
 		if($this->isPrimitive()) {
-			echo "Is primitive".PHP_EOL;
 			if(!self::validateInputType($input, $this->type)) {
-				echo "Input validation failed!".PHP_EOL;
 				if(!$silent) {
 					$sender->sendMessage($this->createErrorMessage($sender, $input));
 				}

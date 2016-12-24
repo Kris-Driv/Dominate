@@ -318,7 +318,6 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		$this->args 	= $args;
 
 		if(!$this->testPermission($sender)) {
-			$sender->sendMessage($this->getPermissionMessage());
 			return false;
 		}
 		if(!$this->testRequirements()) {
@@ -329,7 +328,6 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             return false;
         }
 
-        $stop = false;
         foreach ($this->parameters as $i => $param) {
 
             if (!isset($args[$i]) and !$param->isDefaultValueSet()) {
@@ -342,7 +340,6 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
             $this->values[$i] = $value;
         }
-        if($stop) return false;
 
         if (!empty($this->childs) and count($this->values) > 0) {
             if($this->values[0] === "") {
