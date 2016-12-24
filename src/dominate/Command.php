@@ -88,7 +88,14 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		$this->plugin = $plugin;
 		$this->parameters = $parameters;
 		$this->childs = $childs;
+	
+		$this->setup();
 	}
+
+	/**
+	 * Add requirements, permissions and parameters here
+	 */
+	public function setup() {}
 
 	/*
 	 * ----------------------------------------------------------
