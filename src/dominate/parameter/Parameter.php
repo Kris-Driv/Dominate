@@ -200,7 +200,7 @@ class Parameter {
 	public function read(string $input, CommandSender $sender = null) {
 		$silent = $sender ? false : true;
 		if($this->isPrimitive()) {
-			if(!self::validateInputType($input, $this->type)) {
+			if(!$this->isValid($input, $sender)) {
 				if(!$silent) {
 					$sender->sendMessage($this->createErrorMessage($sender, $input));
 				}
@@ -225,8 +225,8 @@ class Parameter {
 		return null;
 	}
 
-	public function isValid(string $input, CommandSender $sender = null) {
-		return true;
+	public function isValid($input, CommandSender $sender = null) : bool {
+		return self::validateInputType($input, $this->type);
 	}
 
 }
