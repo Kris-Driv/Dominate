@@ -94,7 +94,7 @@ class Parameter {
 		return !$this->isDefaultValueSet();
 	}
 
-	public function setDefaultValue(string $value) {
+	public function setDefaultValue(string $value) : Parameter {
 		$this->default = $value;
 		$this->hasDefault = true;
 		return $this;

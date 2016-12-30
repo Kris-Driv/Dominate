@@ -40,11 +40,11 @@ class SimpleRequirement extends Requirement {
 		self::PLAYER 	=> "requirement.player-error"
 	];
 
-	/** @var int */
+	/** @var int|string */
 	protected $type;
 
-	public function __construct(int $type) {
-		$this->type = $type;
+	public function __construct(int $type = null) {
+		$this->type = $type ?? -1;
 	}
 
 	public function createErrorMessage(CommandSender $sender) : Translatable {
