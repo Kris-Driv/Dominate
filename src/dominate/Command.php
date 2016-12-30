@@ -83,13 +83,14 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * @param Command[] $childs = []
 	 */
 	public function __construct(Plugin $plugin, string $name, string $description = "", string $permission, array $aliases = [], array $parameters = [], array $childs = []){
-		parent::__construct($name, $description, $aliases);
+		parent::__construct($name, $description, "", $aliases);
 		$this->setPermission($permission);
 		$this->plugin = $plugin;
 		$this->parameters = $parameters;
 		$this->childs = $childs;
 	
 		$this->setup();
+		$this->setUsage($this->getUsage());
 	}
 
 	/**
