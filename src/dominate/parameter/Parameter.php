@@ -94,7 +94,11 @@ class Parameter {
 		return !$this->isDefaultValueSet();
 	}
 
-	public function setDefaultValue(string $value) : Parameter {
+	/**
+	 * Set default value to null, if you want to set this parameter optional or handle default value yourself
+	 * @param string|null $value
+	 */
+	public function setDefaultValue($value) : Parameter {
 		$this->default = $value;
 		$this->hasDefault = true;
 		return $this;
@@ -157,10 +161,10 @@ class Parameter {
 
 	public function getTemplate(CommandSender $sender = null) {
 		$out = $this->getName();
-		if($this->isDefaultValueSet()) {
+		if($this->isDefaultValueSet() and $this->getDefaultValue() !== null) {
 			$out .= "=".$this->getDefaultValue();
 		}
-		if($this->isRequired())
+		if($this->isRequired($sender))
 			$out = "<".$out.">";
 		else
 			$out = "[".$out."]";
