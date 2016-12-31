@@ -375,18 +375,18 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             	$this->endPoint = $this;
             	// Token was too ambiguous
                 if($matchCount > 8) {
-                    $sender->sendMessage(Localizer::trans("command.too-ambiguous", ["token" => $this->values[0]]));
+                    $sender->sendMessage(Localizer::trans("command-too-ambiguous", ["token" => $this->values[0]]));
                     return false;
                 }
                 // No commands by token was found
                 if($matchCount === 0) {
-                    $sender->sendMessage(Localizer::trans("command.child-none", ["token" => $this->values[0]]));
+                    $sender->sendMessage(Localizer::trans("command-child-none", ["token" => $this->values[0]]));
                     return false;
                 }
                 // Few commands by token was found an suggestion table will be created
-                $sender->sendMessage(Localizer::trans("command.suggestion-header", ["token" => $this->values[0]]));
+                $sender->sendMessage(Localizer::trans("command-suggestion-header", ["token" => $this->values[0]]));
                 foreach($matches as $match) {
-                    $sender->sendMessage(Localizer::trans("command.suggestion", ["match" => $match->getName(), "usage" => $match->getUsage($sender), "desc" => $match->getDescription()]));
+                    $sender->sendMessage(Localizer::trans("command-suggestion", ["match" => $match->getName(), "usage" => $match->getUsage($sender), "desc" => $match->getDescription()]));
                 }
                 return false;
             }
