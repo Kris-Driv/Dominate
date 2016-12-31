@@ -150,6 +150,13 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         return array_values($matches);
     }
 
+    /**
+     * Get single command object by name
+     */
+    public function getChild(string $name) {
+    	return $this->getChildsByToken($name)[0] ?? null;
+    }
+
 	/**
 	 * Registers new subcommand or replaces existing one
 	 * 

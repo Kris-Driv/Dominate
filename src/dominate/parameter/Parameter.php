@@ -135,7 +135,7 @@ class Parameter {
 					case 'true':
 					case 'yes':
 					case 'y':
-						return true;
+
 					case '0':
 					case 'false':
 					case 'no':
@@ -215,7 +215,20 @@ class Parameter {
 			case self::TYPE_FLOAT:
 				return (float) $input;
 			case self::TYPE_BOOLEAN:
-				return (bool) $input;
+				switch ($input) {
+					case '1':
+					case 'true':
+					case 'yes':
+					case 'y':
+						return true;
+					case '0':
+					case 'false':
+					case 'no':
+					case 'n':
+						return false;
+					default:
+						return null;
+				}
 			default:
 				break;
 		}
