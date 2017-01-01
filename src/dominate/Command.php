@@ -350,7 +350,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             }
 
             $value = isset($args[$i]) ? $args[$i] : $param->getDefaultValue();
-            if($param->getType() === Parameter::TYPE_NULL && $value !== null) {
+            if($param->getType() !== Parameter::TYPE_NULL && $value !== null) {
 	            $param->setValue($param->read($value, $sender));
 	            if(!$param->isValid($param->getValue(), $sender)){
 	            	return false;
