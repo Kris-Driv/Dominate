@@ -139,11 +139,13 @@ class Parameter {
 					case 'true':
 					case 'yes':
 					case 'y':
+					case true:
 
 					case '0':
 					case 'false':
 					case 'no':
 					case 'n':
+					case false:
 						return true;
 					default:
 						return false;

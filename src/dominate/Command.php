@@ -304,6 +304,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 */
 
 	public function getUsage() {
+		# TODO: Do this once
 		$sender = $this->sender;
 		$usage = "/";
         // add chain
@@ -322,6 +323,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	public function sendUsage(CommandSender $sender = null) {
 		$sender = $sender ?? $this->sender;
+		if(!$sender) return;
 		$sender->sendMessage($this->getUsage());
 	}
 
@@ -357,6 +359,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             if($param->getType() !== Parameter::TYPE_NULL && $value !== null) {
 	            $param->setValue($param->read($value, $sender));
 	            if(!$param->isValid($param->getValue(), $sender)){
+	            	echo "Parameter ".$param->getName()." is invalid".PHP_EOL;
 	            	return false;
 	            }
             }
