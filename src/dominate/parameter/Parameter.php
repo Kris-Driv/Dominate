@@ -246,4 +246,16 @@ class Parameter {
 		return self::validateInputType($input, $this->type);
 	}
 
+	public function isset($ignoreDefault = false) {
+		if($ignoreDefault) {
+			return $this->value === null;
+		} else {
+			return $this->value === $this->defaultValue;
+		}
+	}
+
+	public function unset() {
+		$this->value = null;
+	}
+
 }

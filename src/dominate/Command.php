@@ -260,6 +260,10 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		return null;
 	}
 
+	public function isArgumentSet(int $index) {
+		return isset($this->values[$index]);
+	}
+
 	public function getRequiredParameterCount() : int {
 		$i = 0;
 		foreach ($this->parameters as $a) {
@@ -329,7 +333,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
 	public function execute(CommandSender $sender, $label, array $args) {
 		$this->sender 	= $sender;
-		$this->label 	= "/" . $this->getName() . " " . implode(" ", $args);
+		$this->label 	= $label;
 		$this->args 	= $args;
 
 		if(!$this->testPermission($sender)) {
@@ -392,8 +396,17 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
             }
         }
 
+        try {
+        	$this->perform($sender, $label, $args);
+    	} catch(\Message $e) {
+    		$sender->sendMessage($e->getMessage());
+    	}
         $this->reset();
         return true;
+	}
+
+	public function perform(CommandSender $sender, $label, array $args) {
+		return true;
 	}
 
 	public function reset() {
@@ -401,6 +414,9 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		$this->label = "";
 		$this->args = [];
 		$this->values = [];
+		foreach ($this->parameters as $param) {
+			$param->unset();
+		}
 	}
 
 	public function getPlugin() {
