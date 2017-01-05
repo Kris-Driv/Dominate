@@ -253,6 +253,13 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		return -1;
 	}
 
+	public function getParameter(string $name) {
+		foreach ($this->parameters as $param) {
+			if($param->getName() === $name) return $param;
+		}
+		return null;
+	}
+
 	public function getArgument(int $index) {
 		if(isset($this->parameters[$index])) {
 			return $this->parameters[$index]->getValue();
@@ -333,11 +340,18 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * ----------------------------------------------------------
 	 */
 
+	public function prepare(CommandSender $sender, $label, array $args) : bool {
+		return true;
+	}
+
 	public function execute(CommandSender $sender, $label, array $args) {
 		$this->sender 	= $sender;
 		$this->label 	= $label;
 		$this->args 	= $args;
 
+		if(!$this->prepare($sender, $label, $args)) {
+			return false;
+		}
 		if(!$this->testPermission($sender)) {
 			return false;
 		}
@@ -357,9 +371,17 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 
             $value = isset($args[$i]) ? $args[$i] : $param->getDefaultValue();
             if($param->getType() !== Parameter::TYPE_NULL && $value !== null) {
+            	if($param->isPermissionSet()) {
+        			if(!$param->testPermission($sender)) {
+        				$sender->sendMessage(Localizer::translatable("parameter.permission-denied", [
+        					"param" => $param->getName()
+        					]));
+        				return false;
+	        		}
+	        	}
 	            $param->setValue($param->read($value, $sender));
-	            if(!$param->isValid($param->getValue(), $sender)){
-	            	echo "Parameter ".$param->getName()." is invalid".PHP_EOL;
+	            if(!$param->isValid($param->getValue(), $sender)) {
+	            	$sender->sendMessage($param->createErrorMessage($sender, $value));
 	            	return false;
 	            }
             }
@@ -400,7 +422,25 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         }
 
         try {
-        	$this->perform($sender, $label, $args);
+        	$return = $this->perform($sender, $label, $args);
+        	if(is_string($return)) {
+        		$sender->sendMessage(Localizer::translatable($return));
+        	} elseif(is_array($return)) {
+        		switch (count($return)) {
+        			case 0:
+        				break;
+        			case 1:
+        				$msg = $return[0];
+        				$params = [];
+        			default:
+        				$msg = $return[0];
+        				$params = array_pop($return);
+        				if(!is_array($params)) $params = [$params];
+        		}
+        		if(isset($msg)) {
+        			$sender->sendMessage(Localizer::translatable($msg, $params));
+        		}
+        	}
     	} catch(\Message $e) {
     		$sender->sendMessage($e->getMessage());
     	}

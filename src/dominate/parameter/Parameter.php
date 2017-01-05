@@ -20,7 +20,9 @@ namespace dominate\parameter;
 
 use pocketmine\command\CommandSender;
 use pocketmine\Player;
+
 use localizer\Translatable;
+use localizer\Localizer;
 
 class Parameter {
 
@@ -35,12 +37,12 @@ class Parameter {
 	const TYPE_NULL		= 0x5;
 
 	/** @var string[] */
-	public static $ERROR_MESSAGES = [
-		self::TYPE_STRING 	=> "parameter.type-string-error",
-		self::TYPE_INTEGER 	=> "parameter.type-integer-error",
-		self::TYPE_FLOAT 	=> "parameter.type-float-error",
-		self::TYPE_BOOLEAN 	=> "parameter.type-boolean-error",
-		self::TYPE_NULL		=> "parameter.type-null-error"
+	public $ERROR_MESSAGES = [
+		self::TYPE_STRING 	=> "type-string",
+		self::TYPE_INTEGER 	=> "type-integer",
+		self::TYPE_FLOAT 	=> "type-float",
+		self::TYPE_BOOLEAN 	=> "type-boolean",
+		self::TYPE_NULL		=> "type-null"
 	];
 
 	const PRIMITIVE_TYPES = [
@@ -68,10 +70,37 @@ class Parameter {
 	/** @var mixed */
 	protected $value;
 
+	/** @var string */
+	protected $permission;
+
 	public function __construct(string $name, int $type = null, int $index = null) {
 		$this->type = $type ?? $this->type;
 		$this->name = $name;
 		$this->index = $index ?? $this->index;
+
+		$this->setup();
+	}
+
+	/**
+	 * Set error messages and other stuff.
+	 */
+	public function setup() {}
+
+	public function setPermission(string $permission) : Parameter {
+		$this->permission = $permission;
+		return $this;
+	}
+
+	public function getPermission() {
+		return $this->permission;
+	}
+
+	public function testPermission(CommandSender $sender) {
+		return $sender->hasPermission($this->getPermission());
+	}
+
+	public function isPermissionSet() : bool {
+		return $this->permission !== null;
 	}
 
 	public function getIndex() : int {
@@ -174,19 +203,15 @@ class Parameter {
 	}
 
 	public function createErrorMessage(CommandSender $sender, string $value) : Translatable {
-		if(isset(self::$ERROR_MESSAGES[$this->type])) {
-			return new Translatable(self::$ERROR_MESSAGES[$this->type], [
-				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
-				"value" => $value,
-				"n" => $this->getIndex() + 1 // Must make this readable, not everyone can program
-			]);
-		} else {
-			return new Translatable("argument.generic-error", [
-				"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
-				"value" => $value,
-				"n" => $this->getIndex() + 1
-			]);
+		$error = $this->ERROR_MESSAGES;
+		if(is_array($error)) {
+			$error = $this->ERROR_MESSAGES[$this->type] ?? "generic-error";
 		}
+		return Localizer::translatable("".$error, [
+			"sender" => ($sender instanceof Player ? $sender->getDisplayName() : $sender->getName()),
+			"value" => $value,
+			"n" => $this->getIndex() + 1
+		]);
 	}
 
 	public function isPrimitive() : bool {
@@ -204,15 +229,6 @@ class Parameter {
 	 * @return mixed
 	 */
 	public function read(string $input, CommandSender $sender = null) {
-		$silent = $sender ? false : true;
-		if($this->isPrimitive()) {
-			if(!$this->isValid($input, $sender)) {
-				if(!$silent) {
-					$sender->sendMessage($this->createErrorMessage($sender, $input));
-				}
-				return null;
-			}
-		}
 		switch ($this->type) {
 			case self::TYPE_STRING:
 				return (string) $input;
@@ -236,12 +252,8 @@ class Parameter {
 						return null;
 				}
 			default:
-				break;
+				return null;
 		}
-		if(!$silent) {
-			$sender->sendMessage($this->createErrorMessage($sender, $input));
-		}
-		return null;
 	}
 
 	public function isValid($input, CommandSender $sender = null) : bool {
