@@ -18,6 +18,7 @@
  */
 namespace dominate;
 
+use Message;
 use pocketmine\command\Command as PocketMineCommand;
 use pocketmine\command\PluginIdentifiableCommand;
 use pocketmine\command\CommandSender;
@@ -49,6 +50,8 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * @var Parameter[]
 	 */
 	protected $parameters = [];
+	
+	
 
 	/**
 	 * Values from each parameter
@@ -60,6 +63,24 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * @var Command
 	 */
 	protected $endPoint = null;
+
+	/**
+	 * Send error messagem if arguments > parameter count
+	 * @var bool
+	 */
+	protected $overflowSensitive = true;
+
+	/**
+	 * Swap arguments if given in wrong order
+	 * @var bool
+	 */
+	protected $swap = true;
+
+	/**
+	 * Give sender suggestions if more than command met token
+	 * @var bool
+	 */
+	protected $smart = true;
 
 	// Last execution parameters
 	
@@ -75,19 +96,25 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	/** @var Plugin */
 	protected $plugin;
 
-	/**
-	 * @param string $name
-	 * @param string $description = ""
-	 * @param string[] $aliases = []
-	 * @param Parameter[] $parameters = []
-	 * @param Command[] $childs = []
-	 */
-	public function __construct(Plugin $plugin, string $name, string $description = "", string $permission, array $aliases = [], array $parameters = [], array $childs = []){
+
+    /**
+     * @param Plugin|Command $owner
+     * @param string $name
+     * @param string $description = ""
+     * @param string $permission
+     * @param string[] $aliases = []
+     * @param Parameter[] $parameters = []
+     * @param Command[] $childs = []
+     */
+	public function __construct($owner, string $name, string $description = "", string $permission, array $aliases = [], array $parameters = [], array $childs = []){
 		parent::__construct($name, $description, "", $aliases);
 		$this->setPermission($permission);
-		$this->plugin = $plugin;
+		$this->plugin = $owner instanceof Command ? $owner->getPlugin() : $owner;
+		if($owner instanceof Command) {
+		    $this->setParent($owner);
+        }
 		$this->parameters = $parameters;
-		$this->childs = $childs;
+		$this->setChilds($childs);
 	
 		$this->setup();
 		$this->setUsage($this->getUsage());
@@ -112,6 +139,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
     }
 
     /**
+     * Super command being the first element of array
      * @return Command[]
      */
     public function getChain() : array {
@@ -132,8 +160,9 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
     public function getChildsByToken(string $token) : array
     {
         $matches = [];
+        $token = strtolower($token);
         foreach($this->childs as $child) {
-            if($token === ($name = $child->getName())) {
+            if($token === (strtolower($name = $child->getName()))) {
                 $matches[] = $child;
                 break;
             }
@@ -226,7 +255,6 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		if($this === $command) throw new \LogicException("command can not be parent of self");
 		// TODO: other logic checks
 		$this->parent = $command;
-		$command->removeChild($command);
 	}
 
 	/*
@@ -251,6 +279,14 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 			if($a === $arg) return $i;
 		}
 		return -1;
+	}
+
+    /**
+     * @param int $index
+     * @return Parameter|null
+     */
+	public function getParameterAt(int $index) {
+		return $this->parameters[$index] ?? null;
 	}
 
 	public function getParameter(string $name) {
@@ -301,17 +337,7 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		return true;
 	}
 
-	/*
-	 * ----------------------------------------------------------
-	 * USAGE
-	 * ----------------------------------------------------------
-	 * 
-	 * Generate dynamic usage messages 
-	 *
-	 */
-
 	public function getUsage() {
-		# TODO: Do this once
 		$sender = $this->sender;
 		$usage = "/";
         // add chain
@@ -323,6 +349,9 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         foreach ($this->parameters as $param) {
             $usage .= $param->getTemplate($sender)." ";
         }
+        if(empty($this->parameters) && !empty($this->getChilds())) {
+        	$usage .= "<sub-command> ";
+        }
         $usage = trim($usage);
         $this->usage = $usage;
         return $usage;
@@ -331,6 +360,12 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	public function sendUsage(CommandSender $sender = null) {
 		$sender = $sender ?? $this->sender;
 		if(!$sender) return;
+		if(class_exists("\\localizer\\Localizer")) {
+		    if(($msg = Localizer::trans("command-usage", ["usage" => $this->getUsage()])) !== "command-usage") {
+		        $sender->sendMessage($msg);
+            	return;
+            }
+        }
 		$sender->sendMessage($this->getUsage());
 	}
 
@@ -340,7 +375,13 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	 * ----------------------------------------------------------
 	 */
 
-	public function prepare(CommandSender $sender, $label, array $args) : bool {
+    /**
+     * @param CommandSender $sender
+     * @param $label
+     * @param array $args
+     * @return bool
+     */
+    public function prepare(CommandSender $sender, $label, array $args) : bool {
 		return true;
 	}
 
@@ -358,20 +399,24 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 		if(!$this->testRequirements()) {
 			return false;
 		}
-		if( ($argCount = count($args)) < $this->getRequiredParameterCount() ) {
+		if( ($argCount = count($args)) < $this->getRequiredParameterCount() && $this->overflowSensitive ) {
             $this->sendUsage($sender);
             return false;
         }
 
+        if($this->swap) {
+        	$this->swap();
+        }
         foreach ($this->parameters as $i => $param) {
 
+        	$args = $this->args;
             if (!isset($args[$i]) and !$param->isDefaultValueSet()) {
             	break;
             }
 
             $value = isset($args[$i]) ? $args[$i] : $param->getDefaultValue();
             if($param->getType() !== Parameter::TYPE_NULL && $value !== null) {
-            	if($param->isPermissionSet()) {
+            	if($param->isPermissionSet() && $this->isArgumentSet($i)) {
         			if(!$param->testPermission($sender)) {
         				$sender->sendMessage(Localizer::translatable("parameter.permission-denied", [
         					"param" => $param->getName()
@@ -380,12 +425,21 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
 	        		}
 	        	}
 	            $param->setValue($param->read($value, $sender));
-	            if(!$param->isValid($param->getValue(), $sender)) {
+            	# If more than one param was validated at once, then which error message should we use? # TODO
+	            if(!$param->isValid($param->getValue(), $sender) && !$param->getNextParameter()) {
 	            	$sender->sendMessage($param->createErrorMessage($sender, $value));
 	            	return false;
-	            }
+	            } elseif ($param->getNextParameter()) {
+                    while($param = $param->getNextParameter()) {
+                        $param->setValue($param->read($value, $sender));
+                        if(!$param->isValid($param->getValue(), $sender) && !$param->getNextParameter()) {
+                            $sender->sendMessage($param->createErrorMessage($sender, $value));
+                        }
+                    }
+                }
             }
             $this->values[$i] = $value;
+            $this->args = $args;
         }
 
         if (!empty($this->childs) and count($this->values) > 0) {
@@ -426,12 +480,14 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         	if(is_string($return)) {
         		$sender->sendMessage(Localizer::translatable($return));
         	} elseif(is_array($return)) {
+        	    $params = [];
         		switch (count($return)) {
         			case 0:
         				break;
         			case 1:
         				$msg = $return[0];
         				$params = [];
+        				break;
         			default:
         				$msg = $return[0];
         				$params = array_pop($return);
@@ -441,15 +497,47 @@ class Command extends PocketMineCommand implements PluginIdentifiableCommand {
         			$sender->sendMessage(Localizer::translatable($msg, $params));
         		}
         	}
-    	} catch(\Message $e) {
-    		$sender->sendMessage($e->getMessage());
+    	} catch(ThrowableMessage $e) {
+    		$sender->sendMessage(Localizer::translatable($e->getMessage(), $e->getParameters()));
     	}
         $this->reset();
         return true;
 	}
-
+	
 	public function perform(CommandSender $sender, $label, array $args) {
 		return true;
+	}
+
+	// SWAP
+
+	private function swap() {
+		// TODO
+	}
+
+	public function swappingEnabled(): bool {
+		return $this->swap;
+	}
+
+	public function setSwapping(bool $value) {
+		$this->swap = $value;
+	}
+
+	public function toggleSwapping() {
+		$this->swap = !$this->swap;
+	}
+
+	// SMART
+
+	public function isSmart(): bool {
+		return $this->smart;
+	}
+
+	public function setSmart(bool $value) {
+		$this->smart = $value;
+	}
+
+	public function toggleSmart() {
+		$this->smart = !$this->smart;
 	}
 
 	public function reset() {

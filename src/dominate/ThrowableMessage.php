@@ -21,14 +21,15 @@ namespace dominate;
 use localizer\Translatable;
 use localizer\Localizer;
 
-class Message extends \Exception {
+class ThrowableMessage extends \Exception {
 
 	/** @var string|Translatable */
 	public $message;
 
-	/**
-	 * @param string|Translatable
-	 */
+    /**
+     * @param string $message
+     * @internal param $ string|Translatable
+     */
 	public function __construct($message) {
 		if(!$message instanceof Translatable) {
 			if(($nm = Localizer::translatable($message))->getText() !== $message) {
